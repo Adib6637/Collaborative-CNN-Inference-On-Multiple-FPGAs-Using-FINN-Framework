@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
+<nta>
+	<declaration>// Place global declarations here.
+
+const int device_num = 3;
+
+int data_con[(device_num+1)];
+const int last_con = device_num;
+
+//board
+const int master = 0;
+const int dependent = 1;
+
+typedef struct
+{
+    int id;
+    int role;
+    int num_data_buffer_fpga;
+    int num_out_buffer_fpga;
+    int input_data;  
+    int output_data;
+} board;
+
+
+board b_0 = {0, master, 0, 0, 0,1};
+board b_1 = {1, dependent, 0, 0, 1,2};
+board b_2 = {2, dependent, 0, 0, 2, last_con};
+//board b_2 = {0, master, 0, 0, 2,last_con};
+
+////////////////////////////////////////////////////////////////////////////////
+
+int t_fpga_exe[device_num] = {100,0,0};
+//t_fpga_exe[0] = 100;
+
+//clock board_clk_0, board_clk_1, board_clk_2;
+clock clk[device_num];
+
+//board_0 = 0;
+//board_1 = 0;
+//board_2 = 0;
+
+
+
+
+
+</declaration>
+	<template>
+		<name x="5" y="5">flow</name>
+		<declaration>// Place local declarations here.
+</declaration>
+		<location id="id0" x="-195" y="0">
+			<name x="-221" y="17">Fetch</name>
+		</location>
+		<location id="id1" x="119" y="0">
+			<name x="102" y="17">post</name>
+		</location>
+		<location id="id2" x="-34" y="0">
+			<name x="-68" y="17">Inference</name>
+		</location>
+		<location id="id3" x="255" y="0">
+			<name x="204" y="17">communication</name>
+		</location>
+		<init ref="id0"/>
+		<transition id="id4">
+			<source ref="id1"/>
+			<target ref="id3"/>
+		</transition>
+		<transition id="id5">
+			<source ref="id2"/>
+			<target ref="id1"/>
+		</transition>
+		<transition id="id6">
+			<source ref="id0"/>
+			<target ref="id2"/>
+		</transition>
+	</template>
+	<template>
+		<name>fetch</name>
+		<parameter>board &amp;brd</parameter>
+		<location id="id7" x="-748" y="-348">
+			<name x="-791" y="-399">wait_data</name>
+		</location>
+		<location id="id8" x="-442" y="-348">
+			<name x="-433" y="-391">get_data</name>
+		</location>
+		<location id="id9" x="-612" y="-161">
+			<name x="-646" y="-144">put_data</name>
+		</location>
+		<init ref="id7"/>
+		<transition id="id10">
+			<source ref="id9"/>
+			<target ref="id7"/>
+			<label kind="assignment" x="-841" y="-238">brd.num_data_buffer_fpga += 1</label>
+		</transition>
+		<transition id="id11">
+			<source ref="id8"/>
+			<target ref="id9"/>
+			<label kind="guard" x="-535" y="-238">brd.num_data_buffer_fpga &lt;= 0</label>
+		</transition>
+		<transition id="id12">
+			<source ref="id7"/>
+			<target ref="id8"/>
+			<label kind="guard" x="-714" y="-340">data_con[brd.input_data] &gt;0</label>
+			<label kind="assignment" x="-714" y="-374">data_con[brd.input_data] -= 1</label>
+		</transition>
+	</template>
+	<template>
+		<name>inference</name>
+		<parameter>board &amp;brd</parameter>
+		<location id="id13" x="-323" y="-110">
+			<name x="-340" y="-153">wait</name>
+		</location>
+		<location id="id14" x="-170" y="-110">
+			<name x="-187" y="-153">exe</name>
+		</location>
+		<location id="id15" x="-246" y="-17">
+			<name x="-263" y="8">out</name>
+		</location>
+		<init ref="id13"/>
+		<transition id="id16">
+			<source ref="id15"/>
+			<target ref="id13"/>
+		</transition>
+		<transition id="id17">
+			<source ref="id14"/>
+			<target ref="id15"/>
+			<label kind="guard" x="-195" y="-76">brd.num_out_buffer_fpga &lt;= 0</label>
+			<label kind="assignment" x="-204" y="-59">brd.num_out_buffer_fpga +=1,
+brd.num_data_buffer_fpga -= 1,
+clk[brd.id] := t_fpga_exe[brd.id]</label>
+		</transition>
+		<transition id="id18">
+			<source ref="id13"/>
+			<target ref="id14"/>
+			<label kind="guard" x="-331" y="-221">brd.num_data_buffer_fpga &gt;=1</label>
+		</transition>
+	</template>
+	<template>
+		<name>post</name>
+		<parameter>board &amp;brd</parameter>
+		<location id="id19" x="-297" y="-144">
+			<name x="-357" y="-153">idle</name>
+		</location>
+		<location id="id20" x="50" y="-144">
+			<name x="8" y="-178">get_output</name>
+		</location>
+		<location id="id21" x="-127" y="85">
+			<name x="-204" y="77">forward</name>
+		</location>
+		<location id="id22" x="314" y="-144">
+			<name x="348" y="-153">interpret</name>
+		</location>
+		<location id="id23" x="323" y="85">
+			<name x="357" y="68">wait_final_output</name>
+		</location>
+		<init ref="id19"/>
+		<transition id="id24">
+			<source ref="id22"/>
+			<target ref="id19"/>
+			<nail x="306" y="-314"/>
+			<nail x="-297" y="-314"/>
+		</transition>
+		<transition id="id25">
+			<source ref="id21"/>
+			<target ref="id23"/>
+			<label kind="guard" x="42" y="93">brd.role == master</label>
+			<label kind="assignment" x="0" y="110">data_con[brd.output_data] += 1</label>
+			<nail x="68" y="85"/>
+		</transition>
+		<transition id="id26">
+			<source ref="id23"/>
+			<target ref="id22"/>
+			<label kind="guard" x="348" y="-51">data_con[last_con] &gt;= 1</label>
+			<label kind="assignment" x="340" y="-25">data_con[last_con] -=1</label>
+		</transition>
+		<transition id="id27">
+			<source ref="id20"/>
+			<target ref="id22"/>
+			<label kind="guard" x="102" y="-170">device_num == 1</label>
+		</transition>
+		<transition id="id28">
+			<source ref="id21"/>
+			<target ref="id19"/>
+			<label kind="guard" x="-493" y="-17">brd.role == dependent</label>
+			<label kind="assignment" x="-493" y="0">data_con[brd.output_data] += 1</label>
+		</transition>
+		<transition id="id29">
+			<source ref="id20"/>
+			<target ref="id21"/>
+			<label kind="guard" x="-25" y="-34">data_con[brd.output_data] &lt;= 0 &amp;&amp;
+device_num &gt; 1</label>
+		</transition>
+		<transition id="id30">
+			<source ref="id19"/>
+			<target ref="id20"/>
+			<label kind="guard" x="-238" y="-221">brd.num_out_buffer_fpga &gt;= 1</label>
+			<label kind="assignment" x="-238" y="-195">brd.num_out_buffer_fpga -= 1</label>
+		</transition>
+	</template>
+	<template>
+		<name>data_gen</name>
+		<location id="id31" x="-365" y="-51">
+		</location>
+		<init ref="id31"/>
+		<transition id="id32">
+			<source ref="id31"/>
+			<target ref="id31"/>
+			<label kind="guard" x="-433" y="34">data_con[0] &lt;= 0</label>
+			<label kind="assignment" x="-433" y="59">data_con[0] += 1</label>
+			<nail x="-306" y="25"/>
+			<nail x="-433" y="25"/>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+b0_p1 = fetch(b_0);
+b0_p2 = inference(b_0);
+b0_p3 = post(b_0);
+
+b1_p1 = fetch(b_1);
+b1_p2 = inference(b_1);
+b1_p3 = post(b_1);
+
+b2_p1 = fetch(b_2);
+b2_p2 = inference(b_2);
+b2_p3 = post(b_2);
+
+data_generator = data_gen();
+
+
+// List one or more processes to be composed into a system.
+system data_generator, b0_p1, b0_p2, b0_p3, b1_p1, b1_p2, b1_p3 , b2_p1, b2_p2, b2_p3;
+</system>
+	<queries>
+		<query>
+			<formula>A[] not ( b_0.num_data_buffer_fpga &gt; 1 ) or ( b_0.num_data_buffer_fpga &lt; 0 )</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-11-10 15:19:17 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>A[] not ( b_1.num_data_buffer_fpga &gt; 1 ) or ( b_1.num_data_buffer_fpga &lt; 0 )</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-11-10 15:19:17 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>A[] not ( b_2.num_data_buffer_fpga &gt; 1 ) or ( b_2.num_data_buffer_fpga &lt; 0 )</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-11-10 15:19:17 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>A[] not ( b_0.num_out_buffer_fpga &gt; 1 or b_0.num_out_buffer_fpga &lt; 0) </formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-11-10 15:19:17 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>A[] not ( b_1.num_out_buffer_fpga &gt; 1 or b_1.num_out_buffer_fpga &lt; 0) </formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-11-10 15:19:17 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>A[] not ( b_2.num_out_buffer_fpga &gt; 1 or b_2.num_out_buffer_fpga &lt; 0) </formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-11-10 15:19:17 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>A[] not deadlock</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-11-10 15:19:17 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>A[] not ( data_con[b_0.input_data] &gt; 1 ) or ( data_con[b_0.input_data] &lt; 0 )</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-11-10 15:19:17 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>A[] not ( data_con[b_1.input_data] &gt; 1 ) or ( data_con[b_1.input_data] &lt; 0 )</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>A[] not ( data_con[b_2.input_data] &gt; 1 ) or ( data_con[b_2.input_data] &lt; 0 )</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+	</queries>
+</nta>
